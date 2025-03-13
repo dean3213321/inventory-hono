@@ -1,0 +1,20 @@
+{
+  "name": "inventory-hono",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon --watch src --ext ts,json --exec tsx src/index.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.8",
+    "@prisma/client": "^6.5.0",
+    "hono": "^4.7.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.24",
+    "nodemon": "^3.1.9",
+    "prisma": "^6.5.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.7.1",
+    "typescript": "^5.8.2"
+  }
+}
