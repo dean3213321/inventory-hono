@@ -2,7 +2,7 @@
   "name": "inventory-hono",
   "type": "module",
   "scripts": {
-    "dev": "nodemon --watch src --ext ts,json --exec tsx src/index.ts"
+    "dev": "nodemon -L --watch src --ext ts,json --exec tsx src/index.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",
