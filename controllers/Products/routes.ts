@@ -1,4 +1,4 @@
-import { Hono, type Context } from "hono"
+import { Hono } from "hono"
 import { getInventoryProductsController, createInventoryProductController, updateInventoryProductController, deleteInventoryProductController, getInventoryTotalController, getInventoryLowController } from "./index.js"
 
 const router = new Hono()
