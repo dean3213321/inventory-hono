@@ -51,27 +51,28 @@ export async function createInventoryProductData(c: Context) {
 }
 
 export async function updateInventoryProductData(c: Context) {
-    const productId = parseInt(c.req.param('id'), 10);
-  const { item, quantity, selling_price } = await c.req.json();
+  const productId = parseInt(c.req.param('id'), 10);
+  const { product_name, quantity, selling_price } = await c.req.json();  // Corrected key: item -> product_name
 
   if (isNaN(selling_price)) {
-    console.error("Invalid selling price:", selling_price);
-    return c.json({ error: "Selling price must be a valid number." }, 400);
+      console.error("Invalid selling price:", selling_price);
+      return c.json({ error: "Selling price must be a valid number." }, 400);
   }
+  // No need to check quantity or product_name here. Let the try-catch handle the DB error.
 
   try {
-    const updatedProduct = await prisma.inventory_bookstore.update({
-      where: { id: productId },
-      data: {
-        product_name: item,
-        quantity: quantity,
-        selling_price: selling_price,
-      },
-    });
-    return c.json({ message: "Product updated successfully" });
+      const updatedProduct = await prisma.inventory_bookstore.update({
+          where: { id: productId },
+          data: {
+              product_name: product_name, // Use correct database field name
+              quantity: quantity,
+              selling_price: selling_price,
+          },
+      });
+      return c.json({ message: "Product updated successfully" });
   } catch (err) {
-    console.error("Error updating product:", err);
-    return c.json({ error: "Failed to update product" }, 500);
+      console.error("Error updating product:", err);
+      return c.json({ error: "Failed to update product" }, 500);
   }
 }
 
