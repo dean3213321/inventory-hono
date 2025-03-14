@@ -81,3 +81,11 @@ model wispay {
   product_name String   @db.VarChar(255)
   quantity     Float    @db.Float
 }
+
+
+model saleshistory {
+  id          Int      @id @default(autoincrement())
+  buyerName   String   @db.VarChar(255)
+  itemsBought String   @db.Text
+  date        DateTime @default(now()) @db.DateTime(0)
+}
