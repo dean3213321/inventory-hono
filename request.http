@@ -1,35 +1,6 @@
-POST http://localhost:3000/todos
-Authorization: Bearer 321111111113
-Content-Type: application/json
-
-{
-  "title": " "
-}
 ###
-GET http://localhost:3000/Users 
+GET http://localhost:3000/api/Users 
 
 ###
 
-GET http://localhost:3000/todos
-Authorization: Bearer 222222223223
-
-###
-
-DELETE http://localhost:3000/todos/20
-Authorization: Bearer 321111111113
-
-
-###
-
-PUT http://localhost:3000/todos/2
-Content-Type: application/json
-Authorization: Bearer 321111111113
-
-{
-  "title": " "
-}
-
-
-###
-
-GET http://localhost:3000/products
+GET http://localhost:3000/api/Products/total
