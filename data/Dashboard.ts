@@ -61,7 +61,7 @@ export async function subItemQuantityData(c: Context) {
   }
 }
 
-// Endpoint to create a sales history record with buyer name and items bought
+// Endpoint to create or update a sales history record with buyer name and items bought
 export async function createSalesHistoryData(c: Context) {
   try {
     const { buyerName, itemsBought } = await c.req.json();
@@ -79,29 +79,44 @@ export async function createSalesHistoryData(c: Context) {
         buyerName: buyerName,
       },
     });
-
-    if (existingRecord) {
-      return c.json(
-        { error: "A record with this buyerName already exists" },
-        400
-      );
-    }
-
     // Ensure itemsBought is stored as a JSON string
     const itemsString =
       typeof itemsBought === "string" ? itemsBought : JSON.stringify(itemsBought);
 
-    const historyRecord = await prisma.saleshistory.create({
-      data: {
-        buyerName,
-        itemsBought: itemsString,
-      },
-    });
+    if (existingRecord) {
+      // If the record exists, parse the existing itemsBought and append the new items
+      const existingItems = JSON.parse(existingRecord.itemsBought);
+      const newItems = JSON.parse(itemsString);
+      const updatedItems = [...existingItems, ...newItems];
 
-    return c.json({
-      message: "Sales history saved successfully",
-      data: historyRecord,
-    });
+      // Update the existing record with the new items
+      const updatedRecord = await prisma.saleshistory.update({
+        where: {
+          id: existingRecord.id,
+        },
+        data: {
+          itemsBought: JSON.stringify(updatedItems),
+        },
+      });
+
+      return c.json({
+        message: "Sales history updated successfully",
+        data: updatedRecord,
+      });
+    } else {
+      // If the record does not exist, create a new one
+      const historyRecord = await prisma.saleshistory.create({
+        data: {
+          buyerName,
+          itemsBought: itemsString,
+        },
+      });
+
+      return c.json({
+        message: "Sales history saved successfully",
+        data: historyRecord,
+      });
+    }
   } catch (error) {
     console.error("Error saving sales history:", error);
     return c.json({ error: "Failed to save sales history" }, 500);
