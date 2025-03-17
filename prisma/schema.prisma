@@ -82,10 +82,20 @@ model wispay {
   quantity     Float    @db.Float
 }
 
+model buyers {
+  buyer_id      Int             @id @default(autoincrement())
+  buyer_name    String          @unique(map: "buyer_name") @db.VarChar(255)
+  sales_history sales_history[]
+}
 
-model saleshistory {
-  id          Int      @id @default(autoincrement())
-  buyerName   String   @db.VarChar(255)
-  itemsBought String   @db.Text
-  date        DateTime @default(now()) @db.DateTime(0)
+
+model sales_history {
+  sale_id      Int       @id @default(autoincrement())
+  buyer_id     Int?
+  product_name String    @db.VarChar(255)
+  quantity     Int
+  sale_date    DateTime? @default(now()) @db.DateTime(0)
+  buyers       buyers?   @relation(fields: [buyer_id], references: [buyer_id], onDelete: Restrict, onUpdate: Restrict, map: "sales_history_ibfk_1")
+
+  @@index([buyer_id], map: "buyer_id")
 }

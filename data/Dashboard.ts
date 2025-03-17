@@ -61,66 +61,62 @@ export async function subItemQuantityData(c: Context) {
   }
 }
 
-// Endpoint to create or update a sales history record with buyer name and items bought
+
 export async function createSalesHistoryData(c: Context) {
   try {
     const { buyerName, itemsBought } = await c.req.json();
 
-    if (!buyerName || !itemsBought) {
-      return c.json(
-        { error: "buyerName and itemsBought are required" },
-        400
-      );
+    // Validate the payload
+    if (!buyerName || !Array.isArray(itemsBought)) {
+      return c.json({ error: "Invalid payload" }, 400);
     }
 
-    // Check if a record with the same buyerName already exists
-    const existingRecord = await prisma.saleshistory.findFirst({
-      where: {
-        buyerName: buyerName,
-      },
+    // Check if the buyer already exists
+    let buyer = await prisma.buyers.findUnique({
+      where: { buyer_name: buyerName },
     });
-    // Ensure itemsBought is stored as a JSON string
-    const itemsString =
-      typeof itemsBought === "string" ? itemsBought : JSON.stringify(itemsBought);
 
-    if (existingRecord) {
-      // If the record exists, parse the existing itemsBought and append the new items
-      const existingItems = JSON.parse(existingRecord.itemsBought);
-      const newItems = JSON.parse(itemsString);
-      const updatedItems = [...existingItems, ...newItems];
-
-      // Update the existing record with the new items
-      const updatedRecord = await prisma.saleshistory.update({
-        where: {
-          id: existingRecord.id,
-        },
-        data: {
-          itemsBought: JSON.stringify(updatedItems),
-        },
-      });
-
-      return c.json({
-        message: "Sales history updated successfully",
-        data: updatedRecord,
-      });
-    } else {
-      // If the record does not exist, create a new one
-      const historyRecord = await prisma.saleshistory.create({
-        data: {
-          buyerName,
-          itemsBought: itemsString,
-        },
-      });
-
-      return c.json({
-        message: "Sales history saved successfully",
-        data: historyRecord,
-      });
+    // If the buyer doesn't exist, create a new buyer
+    if (!buyer) {
+      try {
+        buyer = await prisma.buyers.create({
+          data: { buyer_name: buyerName },
+        });
+      } catch (error) {
+        // Handle unique constraint violation (P2002)
+        if ((error as any).code === 'P2002') {
+          // If the buyer already exists, fetch the existing buyer
+          buyer = await prisma.buyers.findUnique({
+            where: { buyer_name: buyerName },
+          });
+        } else {
+          // Re-throw other errors
+          throw error;
+        }
+      }
     }
+
+    // Ensure buyer is not null
+    if (!buyer) {
+      return c.json({ error: "Buyer not found" }, 404);
+    }
+
+    // Prepare sales history records for each item
+    const salesRecords = itemsBought.map((item: { product_name: string; quantity: number }) => ({
+      buyer_id: buyer.buyer_id, // Link to the buyer
+      product_name: item.product_name,
+      quantity: item.quantity,
+      // sale_date will default to the current timestamp as defined in your schema
+    }));
+
+    // Insert all records in one batch
+    await prisma.sales_history.createMany({
+      data: salesRecords,
+    });
+
+    return c.json({ message: "Sales history recorded successfully" });
   } catch (error) {
-    console.error("Error saving sales history:", error);
-    return c.json({ error: "Failed to save sales history" }, 500);
-  } finally {
-    await prisma.$disconnect();
+    console.error("Error creating sales history:", error);
+    return c.json({ error: "Failed to create sales history" }, 500);
   }
 }

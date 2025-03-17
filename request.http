@@ -15,4 +15,4 @@ Content-Type: application/json
 } 
 
 ###
-GET http://localhost:3000/api/Sales/SalesHistory
+GET http://localhost:3000/api/Sales/BuyerHistory/Dean Bernardo
