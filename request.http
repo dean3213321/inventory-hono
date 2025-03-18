@@ -10,9 +10,20 @@ GET http://localhost:3000/api/Products/total
 
 POST http://localhost:3000/api/Dashboard/getname
 Content-Type: application/json 
+
 {
-    "rfid": "2310204357"
+    "rfid": "2558453492"
 } 
 
 ###
 GET http://localhost:3000/api/Dashboard/Buyerdropdown
+
+
+###
+
+GET http://localhost:3000/api/Dashboard/revenue?period=day
+
+
+### 
+
+POST http://localhost:3000/api/Dashboard/salesNoId

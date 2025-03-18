@@ -67,21 +67,6 @@ model user {
   isofficial     Int
 }
 
-model wispay {
-  id           Int      @id @default(autoincrement())
-  debit        Decimal  @db.Decimal(10, 2)
-  credit       Decimal  @db.Decimal(10, 2)
-  rfid         BigInt
-  empid        String   @db.Text
-  username     String   @db.VarChar(255)
-  refcode      String   @db.Text
-  transdate    DateTime @db.DateTime(0)
-  processedby  String   @db.Text
-  product_type String   @db.VarChar(255)
-  product_name String   @db.VarChar(255)
-  quantity     Float    @db.Float
-}
-
 model buyers {
   buyer_id      Int             @id @default(autoincrement())
   buyer_name    String          @unique(map: "buyer_name") @db.VarChar(255)
