@@ -5,8 +5,7 @@ import {
   getTopSoldItemsData, 
   getExistingBuyersData, 
   getRevenueData,
-  createSalesIdData,
-  createSalesNoIdData
+  createSalesData
 } from "../../data/Dashboard.js"
 
 
@@ -30,10 +29,7 @@ export function getRevenueController(c: Context) {
   return getRevenueData(c);
 }
 
-export function createSalesIdController(c: Context) {
-  return createSalesIdData(c);
+export function createSalesController(c: Context) {
+  return createSalesData(c);
 }
 
-export function createSalesNoIdController(c: Context) {
-  return createSalesNoIdData(c);
-}

@@ -88,9 +88,9 @@ export async function subItemQuantityData(c: Context) {
   }
 }
 
-export async function createSalesIdData(c: Context) {
+export async function createSalesData(c: Context) {
   try {
-    const { buyerName, itemsBought } = await c.req.json();
+    const { buyerName, itemsBought, rfid } = await c.req.json();
 
     // Validate the payload
     if (!buyerName || !Array.isArray(itemsBought)) {
@@ -98,28 +98,24 @@ export async function createSalesIdData(c: Context) {
     }
 
     // Check if the buyer already exists
-    let buyer = await prisma.buyers.findUnique({
+    let buyer = await prisma.buyers.findFirst({
       where: { buyer_name: buyerName },
     });
 
     // If the buyer doesn't exist, create a new buyer
     if (!buyer) {
-      try {
-        buyer = await prisma.buyers.create({
-          data: { buyer_name: buyerName }, // No RFID is included
-        });
-      } catch (error) {
-        // Handle unique constraint violation (P2002)
-        if ((error as any).code === 'P2002') {
-          // If the buyer already exists, fetch the existing buyer
-          buyer = await prisma.buyers.findUnique({
-            where: { buyer_name: buyerName },
-          });
-        } else {
-          // Re-throw other errors
-          throw error;
-        }
-      }
+      buyer = await prisma.buyers.create({
+        data: { 
+          buyer_name: buyerName,
+          rfid: rfid ? BigInt(rfid) : null, // Include RFID if provided
+        },
+      });
+    } else if (rfid && buyer.rfid === null) {
+      // If the buyer exists and RFID is provided, update the buyer's RFID
+      buyer = await prisma.buyers.update({
+        where: { buyer_id: buyer.buyer_id },
+        data: { rfid: BigInt(rfid) },
+      });
     }
 
     // Ensure buyer is not null
@@ -132,6 +128,7 @@ export async function createSalesIdData(c: Context) {
       buyer_id: buyer.buyer_id, // Link to the buyer
       product_name: item.product_name,
       quantity: item.quantity,
+      rfid: rfid ? BigInt(rfid) : null, // Include RFID if provided
       // sale_date will default to the current timestamp as defined in your schema
     }));
 
@@ -143,63 +140,13 @@ export async function createSalesIdData(c: Context) {
     return c.json({ message: "Sales history recorded successfully" });
   } catch (error) {
     console.error("Error creating sales history:", error);
+
+    // Handle unique constraint violation (P2002)
+    if ((error as any).code === 'P2002') {
+      return c.json({ error: "Buyer already exists" }, 400);
+    }
+
     return c.json({ error: "Failed to create sales history" }, 500);
-  }
-}
-
-export async function createSalesNoIdData(c: Context) {
-  try {
-    const { buyerName, itemsBought, rfid } = await c.req.json();
-
-    // Validate the payload
-    if (!buyerName || !Array.isArray(itemsBought) || !rfid) {
-      return c.json({ error: "Invalid payload" }, 400);
-    }
-
-    // Check if the buyer already exists, prefer existing buyer with or without rfid
-    let buyer = await prisma.buyers.findFirst({
-      where: {
-          buyer_name: buyerName,
-      },
-    });
-
-    // If the buyer doesn't exist, create a new buyer
-    if (!buyer) {
-      buyer = await prisma.buyers.create({
-          data: { buyer_name: buyerName, rfid: BigInt(rfid) }, // Include RFID when creating the buyer
-      });
-
-    } else if(buyer.rfid === null) {  //if buyer exist, check rfid, if null then update it
-      buyer = await prisma.buyers.update({
-          where: { buyer_id: buyer.buyer_id },
-          data: { rfid: BigInt(rfid) },
-      });
-    }
-
-
-    // Ensure buyer is not null
-    if (!buyer) {
-      return c.json({ error: "Buyer not found" }, 404);
-    }
-
-    // Prepare sales history records for each item
-    const salesRecords = itemsBought.map((item: { product_name: string; quantity: number }) => ({
-      buyer_id: buyer.buyer_id, // Link to the buyer
-      product_name: item.product_name,
-      quantity: item.quantity,
-      rfid: BigInt(rfid), // Include RFID in the sales history record
-      // sale_date will default to the current timestamp as defined in your schema
-    }));
-
-    // Insert all records in one batch
-    await prisma.sales_history.createMany({
-      data: salesRecords,
-    });
-
-    return c.json({ message: "Sales history with RFID recorded successfully" });
-  } catch (error) {
-    console.error("Error creating sales history with RFID:", error);
-    return c.json({ error: "Failed to create sales history with RFID" }, 500);
   }
 }
 

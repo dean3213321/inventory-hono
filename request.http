@@ -26,4 +26,4 @@ GET http://localhost:3000/api/Dashboard/revenue?period=day
 
 ### 
 
-POST http://localhost:3000/api/Dashboard/salesNoId
+POST http://localhost:3000/api/Dashboard/sales

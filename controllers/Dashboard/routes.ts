@@ -5,8 +5,7 @@ import {
   getTopSoldItemsController, 
   getExistingBuyersController, 
   getRevenueController, 
-  createSalesIdController,
-  createSalesNoIdController
+  createSalesController
 } from "./index.js"
 
 const router = new Hono()
@@ -15,8 +14,7 @@ const router = new Hono()
   .get('/api/Dashboard/gettopsolditems', getTopSoldItemsController)
   .get('/api/Dashboard/Buyerdropdown', getExistingBuyersController)
   .get('/api/Dashboard/revenue', getRevenueController)
-  .post('/api/Dashboard/salesId', createSalesIdController)
-  .post('/api/Dashboard/salesNoId', createSalesNoIdController)
+  .post('/api/Dashboard/sales', createSalesController);
 
 
 export default router 
