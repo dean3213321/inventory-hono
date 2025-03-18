@@ -32,6 +32,30 @@ export async function getUserNameData(c: Context) {
   }
 }
 
+//fetch buyer names for drop inside the modal
+export async function getExistingBuyersData(c: Context) {
+  try {
+    const buyers = await prisma.buyers.findMany({
+      select: {
+        buyer_id: true,
+        buyer_name: true, // Use `buyer_name` instead of `fname` and `lname`
+      },
+    });
+
+    // Map the response to match the expected format in the frontend
+    const formattedBuyers = buyers.map((buyer) => ({
+      buyer_id: buyer.buyer_id,
+      fname: buyer.buyer_name.split(' ')[0], // Extract first name
+      lname: buyer.buyer_name.split(' ')[1] || '', // Extract last name (if exists)
+    }));
+
+    return c.json(formattedBuyers);
+  } catch (error) {
+    console.error("Error fetching existing buyers:", error);
+    return c.json({ error: "Failed to fetch existing buyers" }, 500);
+  }
+}
+
 // Endpoint to update product quantities based on cart items
 export async function subItemQuantityData(c: Context) {
   try {
@@ -118,5 +142,33 @@ export async function createSalesHistoryData(c: Context) {
   } catch (error) {
     console.error("Error creating sales history:", error);
     return c.json({ error: "Failed to create sales history" }, 500);
+  }
+}
+
+// Endpoint to fetch top 5 sold items
+export async function getTopSoldItemsData(c: Context) {
+  try {
+    const topSoldItems = await prisma.sales_history.groupBy({
+      by: ['product_name'],
+      _sum: {
+        quantity: true,
+      },
+      orderBy: {
+        _sum: {
+          quantity: 'desc',
+        },
+      },
+      take: 5,
+    });
+
+    const formattedData = topSoldItems.map(item => ({
+      product_name: item.product_name,
+      total_quantity: item._sum.quantity || 0,
+    }));
+
+    return c.json(formattedData);
+  } catch (error) {
+    console.error("Error fetching top sold items:", error);
+    return c.json({ error: "Failed to fetch top sold items" }, 500);
   }
 }
