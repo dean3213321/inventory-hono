@@ -200,6 +200,64 @@ export async function getRevenueData(c: Context) {
         startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         startDate.setHours(0, 0, 0, 0);
         break;
+      case 'weekly-revenue':
+        // Calculate weekly revenue for the past 4 weeks
+        const weeklyRevenue = [];
+        for (let i = 0; i < 4; i++) {
+          const weekStartDate = new Date(currentDate);
+          weekStartDate.setDate(currentDate.getDate() - currentDate.getDay() - 7 * i);
+          weekStartDate.setHours(0, 0, 0, 0);
+
+          const weekEndDate = new Date(weekStartDate);
+          weekEndDate.setDate(weekStartDate.getDate() + 6);
+          weekEndDate.setHours(23, 59, 59, 999);
+
+          const salesHistory = await prisma.sales_history.findMany({
+            where: {
+              sale_date: {
+                gte: weekStartDate,
+                lte: weekEndDate,
+              },
+            },
+            include: {
+              buyers: {
+                select: {
+                  buyer_name: true,
+                },
+              },
+            },
+          });
+
+          const productNames = salesHistory.map(sale => sale.product_name);
+          const inventoryItems = await prisma.inventory_bookstore.findMany({
+            where: {
+              product_name: {
+                in: productNames,
+              },
+            },
+            select: {
+              product_name: true,
+              selling_price: true,
+            },
+          });
+
+          const priceMap = new Map();
+          inventoryItems.forEach(item => {
+            priceMap.set(item.product_name, item.selling_price);
+          });
+
+          const weeklyRevenueTotal = salesHistory.reduce((total, sale) => {
+            const sellingPrice = priceMap.get(sale.product_name) || 0;
+            return total + sale.quantity * sellingPrice;
+          }, 0);
+
+          weeklyRevenue.push(weeklyRevenueTotal);
+        }
+
+        return c.json({
+          period: 'weekly-revenue',
+          weeklyRevenue,
+        });
       default:
         return c.json({ error: "Invalid period. Use 'day', 'week', or 'month'." }, 400);
     }
@@ -241,11 +299,13 @@ export async function getRevenueData(c: Context) {
       priceMap.set(item.product_name, item.selling_price);
     });
 
-    // Calculate total revenue
-    const totalRevenue = salesHistory.reduce((sum, sale) => {
+    // Calculate revenue for each day of the week
+    const dailyRevenue = Array(7).fill(0);
+    salesHistory.forEach(sale => {
+      const saleDay = sale.sale_date ? new Date(sale.sale_date).getDay() : -1; // -1 for null dates
       const sellingPrice = priceMap.get(sale.product_name) || 0; // Default to 0 if price not found
-      return sum + (sale.quantity * sellingPrice);
-    }, 0);
+      dailyRevenue[saleDay] += sale.quantity * sellingPrice;
+    });
 
     // Format the response
     const formattedSalesHistory = salesHistory.map((sale) => ({
@@ -260,7 +320,7 @@ export async function getRevenueData(c: Context) {
       period,
       startDate,
       endDate,
-      totalRevenue,
+      dailyRevenue,
       salesHistory: formattedSalesHistory,
     });
   } catch (error) {

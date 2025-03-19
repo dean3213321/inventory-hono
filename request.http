@@ -21,7 +21,7 @@ GET http://localhost:3000/api/Dashboard/Buyerdropdown
 
 ###
 
-GET http://localhost:3000/api/Dashboard/revenue?period=day
+GET http://localhost:3000/api/Dashboard/revenue?period=month
 
 
 ### 
