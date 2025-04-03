@@ -86,3 +86,12 @@ model sales_history {
   @@index([buyer_id], map: "buyer_id")
 }
 
+model inventory__suppliers {
+  id            Int      @id @default(autoincrement())
+  companyName   String   @db.VarChar(255)
+  itemsProvided String?  @db.VarChar(255)
+  address       String?  @db.VarChar(255)
+  phoneNumber   String?  @db.VarChar(50)
+  email         String?  @db.VarChar(255)
+  rating        Decimal? @default(0.00) @db.Decimal(3, 2)
+}
