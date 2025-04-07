@@ -180,7 +180,7 @@ export async function getTopSoldItemsData(c: Context) {
 
 export async function getRevenueData(c: Context) {
   try {
-    const period = c.req.query('period'); // Get period from query parameter (day, week, month)
+    const period = c.req.query('period'); // Get period from query parameter (day, week, month, weekly-revenue)
     const currentDate = new Date();
 
     let startDate: Date;
@@ -201,22 +201,44 @@ export async function getRevenueData(c: Context) {
         startDate.setHours(0, 0, 0, 0);
         break;
       case 'weekly-revenue':
-        // Calculate weekly revenue for the past 4 weeks
-        const weeklyRevenue = [];
-        for (let i = 0; i < 4; i++) {
-          const weekStartDate = new Date(currentDate);
-          weekStartDate.setDate(currentDate.getDate() - currentDate.getDay() - 7 * i);
-          weekStartDate.setHours(0, 0, 0, 0);
+        // Calculate weekly revenue for the current month divided into 4 segments
 
-          const weekEndDate = new Date(weekStartDate);
-          weekEndDate.setDate(weekStartDate.getDate() + 6);
-          weekEndDate.setHours(23, 59, 59, 999);
+        // Determine start and end of the current month
+        const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        monthEnd.setHours(23, 59, 59, 999);
+
+        // Define week ranges for the current month
+        const weekRanges = [
+          {
+            start: new Date(currentDate.getFullYear(), currentDate.getMonth(), 1),
+            end: new Date(currentDate.getFullYear(), currentDate.getMonth(), 7, 23, 59, 59, 999),
+          },
+          {
+            start: new Date(currentDate.getFullYear(), currentDate.getMonth(), 8),
+            end: new Date(currentDate.getFullYear(), currentDate.getMonth(), 14, 23, 59, 59, 999),
+          },
+          {
+            start: new Date(currentDate.getFullYear(), currentDate.getMonth(), 15),
+            end: new Date(currentDate.getFullYear(), currentDate.getMonth(), 21, 23, 59, 59, 999),
+          },
+          {
+            start: new Date(currentDate.getFullYear(), currentDate.getMonth(), 22),
+            end: monthEnd,
+          },
+        ];
+
+        const weeklyRevenue = [];
+
+        for (const range of weekRanges) {
+          // If the current date is before the end of the week, adjust the week end
+          const adjustedEnd = currentDate < range.end ? currentDate : range.end;
 
           const salesHistory = await prisma.sales_history.findMany({
             where: {
               sale_date: {
-                gte: weekStartDate,
-                lte: weekEndDate,
+                gte: range.start,
+                lte: adjustedEnd,
               },
             },
             include: {
@@ -228,6 +250,7 @@ export async function getRevenueData(c: Context) {
             },
           });
 
+          // Get product names from sales history and fetch their selling prices
           const productNames = salesHistory.map(sale => sale.product_name);
           const inventoryItems = await prisma.inventory_bookstore.findMany({
             where: {
@@ -241,11 +264,13 @@ export async function getRevenueData(c: Context) {
             },
           });
 
+          // Create a map of product names to selling prices
           const priceMap = new Map();
           inventoryItems.forEach(item => {
             priceMap.set(item.product_name, item.selling_price);
           });
 
+          // Calculate total revenue for the week
           const weeklyRevenueTotal = salesHistory.reduce((total, sale) => {
             const sellingPrice = priceMap.get(sale.product_name) || 0;
             return total + sale.quantity * sellingPrice;
@@ -259,10 +284,10 @@ export async function getRevenueData(c: Context) {
           weeklyRevenue,
         });
       default:
-        return c.json({ error: "Invalid period. Use 'day', 'week', or 'month'." }, 400);
+        return c.json({ error: "Invalid period. Use 'day', 'week', 'month', or 'weekly-revenue'." }, 400);
     }
 
-    // Fetch sales history data within the specified period
+    // For the non-weekly-revenue cases, fetch sales history data within the specified period
     const salesHistory = await prisma.sales_history.findMany({
       where: {
         sale_date: {
